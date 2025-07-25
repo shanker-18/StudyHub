@@ -40,11 +40,13 @@ if (!existsSync(clientDistPath)) {
   const altPath1 = path.resolve(__dirname, '../client/dist');
   const altPath2 = path.resolve(process.cwd(), '../client/dist');
   const altPath3 = path.resolve(__dirname, '../../client/dist');
+  const altPath4 = path.resolve(__dirname, './public');  // Fallback to server/public
   
   console.log('🔍 Trying alternative paths...');
   console.log('🔍 Alt path 1:', altPath1, 'exists:', existsSync(altPath1));
   console.log('🔍 Alt path 2:', altPath2, 'exists:', existsSync(altPath2));
   console.log('🔍 Alt path 3:', altPath3, 'exists:', existsSync(altPath3));
+  console.log('🔍 Alt path 4 (server/public):', altPath4, 'exists:', existsSync(altPath4));
   
   if (existsSync(altPath1)) {
     clientDistPath = altPath1;
@@ -52,6 +54,9 @@ if (!existsSync(clientDistPath)) {
     clientDistPath = altPath2;
   } else if (existsSync(altPath3)) {
     clientDistPath = altPath3;
+  } else if (existsSync(altPath4)) {
+    clientDistPath = altPath4;
+    console.log('⚙️ Using fallback server/public directory');
   }
   
   indexHtmlPath = path.join(clientDistPath, 'index.html');
