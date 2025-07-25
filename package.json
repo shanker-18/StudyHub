@@ -1,0 +1,26 @@
+{
+  "name": "studyhub",
+  "version": "1.0.0",
+  "description": "A mentorship matchmaking platform connecting learners with mentors",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:client": "cd client && npm run dev",
+    "dev:server": "cd server && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "cd server && npm start",
+    "install:all": "npm install && cd client && npm install && cd ../server && npm install"
+  },
+  "keywords": [
+    "mentorship",
+    "education",
+    "platform",
+    "react",
+    "nodejs"
+  ],
+  "author": "StudyHub Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
