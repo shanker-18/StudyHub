@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { connectDB } from './config/db.js';
@@ -27,8 +28,10 @@ const __dirname = path.dirname(__filename);
 
 // Serve static files from client build (go up one level from server to project root)
 const clientDistPath = path.join(__dirname, '../client/dist');
+console.log('🔍 Server __dirname:', __dirname);
+console.log('🔍 Client dist path:', clientDistPath);
+console.log('🔍 Path exists:', fs.existsSync(clientDistPath));
 app.use(express.static(clientDistPath));
-console.log('🔍 Serving static files from:', clientDistPath);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
