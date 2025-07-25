@@ -12,7 +12,7 @@ server/.env
 # Build outputs
 dist/
 build/
-*/dist/
+# */dist/  # Temporarily commented to include client/dist for deployment
 */build/
 
 # Logs
