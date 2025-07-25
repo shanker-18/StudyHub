@@ -1,10 +1,10 @@
 import express from 'express';
-import { auth } from '../middleware/auth.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // Get user's achievements
-router.get('/my', auth, async (req, res) => {
+router.get('/my', authenticateToken, async (req, res) => {
   try {
     // Mock achievements data - in production, this would query MongoDB
     const achievements = [
@@ -82,7 +82,7 @@ router.get('/my', auth, async (req, res) => {
 });
 
 // Get all available achievements
-router.get('/', auth, async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     // Mock all achievements data - in production, this would query MongoDB
     const allAchievements = [
@@ -150,7 +150,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Update achievement progress
-router.patch('/:achievementId/progress', auth, async (req, res) => {
+router.patch('/:achievementId/progress', authenticateToken, async (req, res) => {
   try {
     const { achievementId } = req.params;
     const { progress } = req.body;
