@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { existsSync, readdirSync } from 'fs';
 import { connectDB } from './config/db.js';
 import { initializeFirebase } from './config/firebase.js';
 
@@ -24,6 +25,27 @@ dotenv.config();
 // ES Module path resolution
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Debug paths in production
+const clientDistPath = path.join(__dirname, '../client/dist');
+const indexHtmlPath = path.join(clientDistPath, 'index.html');
+console.log('🔍 Current working directory:', process.cwd());
+console.log('🔍 Server __dirname:', __dirname);
+console.log('🔍 Client dist path:', clientDistPath);
+console.log('🔍 Index.html path:', indexHtmlPath);
+console.log('🔍 Client dist exists:', existsSync(clientDistPath));
+console.log('🔍 Index.html exists:', existsSync(indexHtmlPath));
+if (existsSync(clientDistPath)) {
+  console.log('🔍 Dist directory contents:', readdirSync(clientDistPath));
+} else {
+  console.log('❌ Client dist directory does not exist!');
+  // Try alternative paths
+  const altPath1 = path.join(process.cwd(), 'client/dist');
+  const altPath2 = path.join(process.cwd(), 'dist');
+  console.log('🔍 Alternative path 1:', altPath1, 'exists:', existsSync(altPath1));
+  console.log('🔍 Alternative path 2:', altPath2, 'exists:', existsSync(altPath2));
+  console.log('🔍 Current directory contents:', readdirSync(process.cwd()));
+}
 
 const app = express();
 const PORT = process.env.PORT || 5000;
