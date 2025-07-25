@@ -84,7 +84,8 @@ const PORT = process.env.PORT || 5000;
 
 // Security middleware
 app.use(helmet({
-  crossOriginEmbedderPolicy: false
+  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: false // Disable CSP for static assets
 }));
 
 // CORS Configuration
@@ -139,7 +140,38 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API Routes
+// Add debugging for asset requests
+app.use('/assets/*', (req, res, next) => {
+  console.log('📦 Asset request:', req.path);
+  const assetPath = path.join(clientDistPath, req.path);
+  console.log('📦 Looking for asset at:', assetPath);
+  console.log('📦 Asset exists:', existsSync(assetPath));
+  next();
+});
+
+// Serve frontend build BEFORE API routes to handle static assets
+if (existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath, {
+    setHeaders: (res, path) => {
+      console.log('🔧 Setting headers for:', path);
+      if (path.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript');
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+      } else if (path.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css');
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+      } else if (path.endsWith('.html')) {
+        res.setHeader('Content-Type', 'text/html');
+        res.setHeader('Cache-Control', 'no-cache');
+      }
+    }
+  }));
+  console.log('✅ Serving static files from:', clientDistPath);
+} else {
+  console.log('⚠️ No static files to serve - client dist not found');
+}
+
+// API Routes (after static files)
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/mentors', mentorRoutes);
@@ -147,14 +179,6 @@ app.use('/api/requests', requestRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/achievements', achievementRoutes);
-
-// Serve frontend build (only if client dist exists)
-if (existsSync(clientDistPath)) {
-  app.use(express.static(clientDistPath));
-  console.log('✅ Serving static files from:', clientDistPath);
-} else {
-  console.log('⚠️ No static files to serve - client dist not found');
-}
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -165,8 +189,13 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Fallback for React Router (catch-all handler)
+// Fallback for React Router (catch-all handler for non-API routes)
 app.get('*', (req, res) => {
+  // Don't handle API routes here
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'API endpoint not found' });
+  }
+  
   if (existsSync(indexHtmlPath)) {
     res.sendFile(indexHtmlPath);
   } else {
