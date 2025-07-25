@@ -79,6 +79,11 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Root route
+app.get('/', (req, res) => {
+  res.json({ message: 'Welcome to StudyHub API' });
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
