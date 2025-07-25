@@ -135,7 +135,7 @@ const Dashboard = () => {
       title: 'View Messages',
       description: 'Check your latest conversations',
       icon: ChatBubbleLeftRightIcon,
-      link: '/messages',
+      link: '/chat',
       color: 'from-green-500 to-emerald-400'
     },
     {
@@ -147,32 +147,64 @@ const Dashboard = () => {
     }
   ];
 
-  const upcomingSessions = [
-    {
-      id: 1,
-      mentor: 'Sarah Chen',
-      topic: 'React Best Practices',
-      time: '2:00 PM',
-      date: 'Today',
-      avatar: 'SC'
-    },
-    {
-      id: 2,
-      mentor: 'David Kumar',
-      topic: 'System Design',
-      time: '10:00 AM',
-      date: 'Tomorrow',
-      avatar: 'DK'
-    },
-    {
-      id: 3,
-      mentor: 'Emily Rodriguez',
-      topic: 'Career Growth',
-      time: '3:30 PM',
-      date: 'Friday',
-      avatar: 'ER'
-    }
-  ];
+  // Real session data
+  const [upcomingSessions, setUpcomingSessions] = useState([]);
+
+  useEffect(() => {
+    // Load real session data
+    const loadSessions = async () => {
+      try {
+        // Import mock data
+        const { mockData } = await import('../services/api');
+        const sessions = mockData.sessions.filter(session => 
+          session.status === 'upcoming' && new Date(session.scheduledAt) > new Date()
+        ).slice(0, 3); // Take only first 3 for dashboard
+        
+        setUpcomingSessions(sessions.map(session => ({
+          id: session._id,
+          mentor: session.mentorName,
+          topic: session.topic,
+          time: new Date(session.scheduledAt).toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit',
+            hour12: true 
+          }),
+          date: (() => {
+            const sessionDate = new Date(session.scheduledAt);
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            if (sessionDate.toDateString() === today.toDateString()) {
+              return 'Today';
+            } else if (sessionDate.toDateString() === tomorrow.toDateString()) {
+              return 'Tomorrow';
+            } else {
+              return sessionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }
+          })(),
+          avatar: session.mentorName.split(' ').map(n => n[0]).join('')
+        })));
+        
+        // Update stats with real data
+        const totalSessions = mockData.sessions.length;
+        const upcoming = sessions.length;
+        const completed = mockData.sessions.filter(s => s.status === 'completed').length;
+        const achievements = mockData.achievements.filter(a => a.unlocked).length;
+        
+        setStats({
+          totalSessions,
+          upcomingSessions: upcoming,
+          completedGoals: achievements,
+          totalConnections: mockData.mentors.length
+        });
+      } catch (error) {
+        console.error('Error loading sessions:', error);
+      }
+    };
+    
+    loadSessions();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-950 relative overflow-hidden">
