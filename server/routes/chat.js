@@ -1,10 +1,10 @@
 import express from 'express';
-import { auth } from '../middleware/auth.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // Get user's conversations
-router.get('/conversations', auth, async (req, res) => {
+router.get('/conversations', authenticateToken, async (req, res) => {
   try {
     // Mock data for now - in production, this would query MongoDB
     const conversations = [
@@ -28,7 +28,7 @@ router.get('/conversations', auth, async (req, res) => {
 });
 
 // Get messages for a specific conversation
-router.get('/conversations/:conversationId/messages', auth, async (req, res) => {
+router.get('/conversations/:conversationId/messages', authenticateToken, async (req, res) => {
   try {
     const { conversationId } = req.params;
     
@@ -60,7 +60,7 @@ router.get('/conversations/:conversationId/messages', auth, async (req, res) => 
 });
 
 // Send a new message
-router.post('/conversations/:conversationId/messages', auth, async (req, res) => {
+router.post('/conversations/:conversationId/messages', authenticateToken, async (req, res) => {
   try {
     const { conversationId } = req.params;
     const { text } = req.body;
@@ -87,7 +87,7 @@ router.post('/conversations/:conversationId/messages', auth, async (req, res) =>
 });
 
 // Create a new conversation
-router.post('/conversations', auth, async (req, res) => {
+router.post('/conversations', authenticateToken, async (req, res) => {
   try {
     const { participantId } = req.body;
     
@@ -112,7 +112,7 @@ router.post('/conversations', auth, async (req, res) => {
 });
 
 // Mark conversation as read
-router.patch('/conversations/:conversationId/read', auth, async (req, res) => {
+router.patch('/conversations/:conversationId/read', authenticateToken, async (req, res) => {
   try {
     const { conversationId } = req.params;
     

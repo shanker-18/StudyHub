@@ -1,6 +1,7 @@
 import admin from 'firebase-admin';
 import User from '../models/User.js';
 
+// ✅ AUTHENTICATE TOKEN
 export const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -12,14 +13,13 @@ export const authenticateToken = async (req, res, next) => {
 
     // Development mode bypass
     if (process.env.NODE_ENV === 'development' && token === 'dev-token') {
-      // Create a mock user for development
       const mockUser = await User.findOne() || new User({
         uid: 'dev-user',
         email: 'dev@studyhub.com',
         name: 'Dev User',
         role: 'mentor'
       });
-      
+
       req.user = {
         uid: 'dev-user',
         email: 'dev@studyhub.com',
@@ -28,50 +28,28 @@ export const authenticateToken = async (req, res, next) => {
       return next();
     }
 
-    try {
-      // Verify Firebase token
-      const decodedToken = await admin.auth().verifyIdToken(token);
-      
-      // Find user in database
-      const user = await User.findOne({ uid: decodedToken.uid });
-      
-      if (!user) {
-        return res.status(404).json({ error: 'User not found in database' });
-      }
+    // Verify Firebase token
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const user = await User.findOne({ uid: decodedToken.uid });
 
-      // Add user info to request
-      req.user = {
-        uid: decodedToken.uid,
-        email: decodedToken.email,
-        dbUser: user
-      };
-
-      next();
-    } catch (firebaseError) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Firebase verification failed, using development mode');
-        const mockUser = await User.findOne() || new User({
-          uid: 'dev-user',
-          email: 'dev@studyhub.com',
-          name: 'Dev User',
-          role: 'mentor'
-        });
-        
-        req.user = {
-          uid: 'dev-user',
-          email: 'dev@studyhub.com',
-          dbUser: mockUser
-        };
-        return next();
-      }
-      throw firebaseError;
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
     }
+
+    req.user = {
+      uid: decodedToken.uid,
+      email: decodedToken.email,
+      dbUser: user
+    };
+
+    next();
   } catch (error) {
     console.error('Auth middleware error:', error);
     return res.status(403).json({ error: 'Invalid or expired token' });
   }
 };
 
+// ✅ ROLE-BASED ACCESS CONTROL
 export const requireRole = (roles) => {
   return (req, res, next) => {
     if (!req.user || !req.user.dbUser) {
@@ -82,8 +60,8 @@ export const requireRole = (roles) => {
     const allowedRoles = Array.isArray(roles) ? roles : [roles];
 
     if (!allowedRoles.includes(userRole)) {
-      return res.status(403).json({ 
-        error: `Access denied. Required role: ${allowedRoles.join(' or ')}` 
+      return res.status(403).json({
+        error: `Access denied. Required role: ${allowedRoles.join(' or ')}`
       });
     }
 
@@ -91,6 +69,7 @@ export const requireRole = (roles) => {
   };
 };
 
+// ✅ OPTIONAL AUTH FOR PUBLIC ROUTES
 export const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -99,7 +78,7 @@ export const optionalAuth = async (req, res, next) => {
     if (token) {
       const decodedToken = await admin.auth().verifyIdToken(token);
       const user = await User.findOne({ uid: decodedToken.uid });
-      
+
       if (user) {
         req.user = {
           uid: decodedToken.uid,
@@ -111,7 +90,7 @@ export const optionalAuth = async (req, res, next) => {
 
     next();
   } catch (error) {
-    // Continue without authentication for optional auth
+    // Skip error if token is invalid – this is optional
     next();
   }
 };
