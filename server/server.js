@@ -26,25 +26,52 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Debug paths in production
-const clientDistPath = path.join(__dirname, '../client/dist');
-const indexHtmlPath = path.join(clientDistPath, 'index.html');
+// Debug paths in production and determine correct client path
+let clientDistPath = path.join(__dirname, '../client/dist');
+let indexHtmlPath = path.join(clientDistPath, 'index.html');
+
 console.log('🔍 Current working directory:', process.cwd());
 console.log('🔍 Server __dirname:', __dirname);
-console.log('🔍 Client dist path:', clientDistPath);
-console.log('🔍 Index.html path:', indexHtmlPath);
+console.log('🔍 Client dist path (attempt 1):', clientDistPath);
+
+// Check if client dist exists, if not try alternative paths
+if (!existsSync(clientDistPath)) {
+  // Try from server directory going up to parent then to client
+  const altPath1 = path.resolve(__dirname, '../client/dist');
+  const altPath2 = path.resolve(process.cwd(), '../client/dist');
+  const altPath3 = path.resolve(__dirname, '../../client/dist');
+  
+  console.log('🔍 Trying alternative paths...');
+  console.log('🔍 Alt path 1:', altPath1, 'exists:', existsSync(altPath1));
+  console.log('🔍 Alt path 2:', altPath2, 'exists:', existsSync(altPath2));
+  console.log('🔍 Alt path 3:', altPath3, 'exists:', existsSync(altPath3));
+  
+  if (existsSync(altPath1)) {
+    clientDistPath = altPath1;
+  } else if (existsSync(altPath2)) {
+    clientDistPath = altPath2;
+  } else if (existsSync(altPath3)) {
+    clientDistPath = altPath3;
+  }
+  
+  indexHtmlPath = path.join(clientDistPath, 'index.html');
+}
+
+console.log('🔍 Final client dist path:', clientDistPath);
+console.log('🔍 Final index.html path:', indexHtmlPath);
 console.log('🔍 Client dist exists:', existsSync(clientDistPath));
 console.log('🔍 Index.html exists:', existsSync(indexHtmlPath));
+
 if (existsSync(clientDistPath)) {
   console.log('🔍 Dist directory contents:', readdirSync(clientDistPath));
 } else {
-  console.log('❌ Client dist directory does not exist!');
-  // Try alternative paths
-  const altPath1 = path.join(process.cwd(), 'client/dist');
-  const altPath2 = path.join(process.cwd(), 'dist');
-  console.log('🔍 Alternative path 1:', altPath1, 'exists:', existsSync(altPath1));
-  console.log('🔍 Alternative path 2:', altPath2, 'exists:', existsSync(altPath2));
+  console.log('❌ Client dist directory still not found!');
   console.log('🔍 Current directory contents:', readdirSync(process.cwd()));
+  // List parent directory
+  const parentDir = path.resolve(process.cwd(), '..');
+  if (existsSync(parentDir)) {
+    console.log('🔍 Parent directory contents:', readdirSync(parentDir));
+  }
 }
 
 const app = express();
@@ -116,8 +143,13 @@ app.use('/api/sessions', sessionRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/achievements', achievementRoutes);
 
-// Serve frontend build
-app.use(express.static(path.join(__dirname, '../client/dist')));
+// Serve frontend build (only if client dist exists)
+if (existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+  console.log('✅ Serving static files from:', clientDistPath);
+} else {
+  console.log('⚠️ No static files to serve - client dist not found');
+}
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -130,7 +162,15 @@ app.use((err, req, res, next) => {
 
 // Fallback for React Router (catch-all handler)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  if (existsSync(indexHtmlPath)) {
+    res.sendFile(indexHtmlPath);
+  } else {
+    res.status(404).json({ 
+      error: 'Frontend not found',
+      message: 'React app is not built or deployed properly',
+      path: indexHtmlPath
+    });
+  }
 });
 
 // Initialize services and start server
