@@ -65,7 +65,7 @@ out
 
 # Gatsby files
 .cache/
-public
+# public  # Commented to allow server/public directory
 
 # Vuepress build output
 .vuepress/dist

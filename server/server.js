@@ -27,26 +27,25 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Debug paths in production and determine correct client path
-let clientDistPath = path.join(__dirname, '../client/dist');
+// Try server/public first as it's guaranteed to exist
+const serverPublicPath = path.resolve(__dirname, './public');
+let clientDistPath = serverPublicPath;
 let indexHtmlPath = path.join(clientDistPath, 'index.html');
 
 console.log('🔍 Current working directory:', process.cwd());
 console.log('🔍 Server __dirname:', __dirname);
-console.log('🔍 Client dist path (attempt 1):', clientDistPath);
+console.log('🔍 Primary path (server/public):', serverPublicPath, 'exists:', existsSync(serverPublicPath));
 
-// Check if client dist exists, if not try alternative paths
-if (!existsSync(clientDistPath)) {
-  // Try from server directory going up to parent then to client
+// If server/public doesn't exist, try other paths
+if (!existsSync(serverPublicPath)) {
+  console.log('⚠️ Server/public not found, trying alternative paths...');
   const altPath1 = path.resolve(__dirname, '../client/dist');
   const altPath2 = path.resolve(process.cwd(), '../client/dist');
   const altPath3 = path.resolve(__dirname, '../../client/dist');
-  const altPath4 = path.resolve(__dirname, './public');  // Fallback to server/public
   
-  console.log('🔍 Trying alternative paths...');
   console.log('🔍 Alt path 1:', altPath1, 'exists:', existsSync(altPath1));
   console.log('🔍 Alt path 2:', altPath2, 'exists:', existsSync(altPath2));
   console.log('🔍 Alt path 3:', altPath3, 'exists:', existsSync(altPath3));
-  console.log('🔍 Alt path 4 (server/public):', altPath4, 'exists:', existsSync(altPath4));
   
   if (existsSync(altPath1)) {
     clientDistPath = altPath1;
@@ -54,12 +53,13 @@ if (!existsSync(clientDistPath)) {
     clientDistPath = altPath2;
   } else if (existsSync(altPath3)) {
     clientDistPath = altPath3;
-  } else if (existsSync(altPath4)) {
-    clientDistPath = altPath4;
-    console.log('⚙️ Using fallback server/public directory');
+  } else {
+    clientDistPath = path.join(__dirname, '../client/dist'); // fallback path
   }
   
   indexHtmlPath = path.join(clientDistPath, 'index.html');
+} else {
+  console.log('✅ Using server/public directory for frontend assets');
 }
 
 console.log('🔍 Final client dist path:', clientDistPath);
