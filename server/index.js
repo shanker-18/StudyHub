@@ -22,11 +22,13 @@ app.use(cors());
 app.use(express.json());
 
 // Get __dirname in ES Module
-const __dirname = path.resolve();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Serve static files from client build
-app.use(express.static(path.join(__dirname, '/client/dist')));
-console.log('🔍 Serving static files from:', path.join(__dirname, '/client/dist'));
+// Serve static files from client build (go up one level from server to project root)
+const clientDistPath = path.join(__dirname, '../client/dist');
+app.use(express.static(clientDistPath));
+console.log('🔍 Serving static files from:', clientDistPath);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -48,7 +50,7 @@ app.use('/api/achievements', achievementRoutes);
 
 // Fallback: Serve index.html for all non-API routes
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '/client/dist/index.html'));
+  res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
 // Initialize services and start server
