@@ -140,35 +140,59 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Add debugging for asset requests
-app.use('/assets/*', (req, res, next) => {
-  console.log('📦 Asset request:', req.path);
-  const assetPath = path.join(clientDistPath, req.path);
-  console.log('📦 Looking for asset at:', assetPath);
-  console.log('📦 Asset exists:', existsSync(assetPath));
-  next();
+// DIRECT ASSET SERVING - Handle assets manually to ensure correct MIME types
+app.get('/assets/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const assetPath = path.join(clientDistPath, 'assets', filename);
+  
+  console.log('📦 Direct asset request:', filename);
+  console.log('📦 Full path:', assetPath);
+  console.log('📦 File exists:', existsSync(assetPath));
+  
+  if (!existsSync(assetPath)) {
+    console.log('❌ Asset not found:', assetPath);
+    return res.status(404).json({ error: 'Asset not found', path: assetPath });
+  }
+  
+  // Set correct MIME type based on file extension
+  if (filename.endsWith('.js')) {
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  } else if (filename.endsWith('.css')) {
+    res.setHeader('Content-Type', 'text/css; charset=utf-8');
+  } else if (filename.endsWith('.svg')) {
+    res.setHeader('Content-Type', 'image/svg+xml');
+  } else if (filename.endsWith('.png')) {
+    res.setHeader('Content-Type', 'image/png');
+  } else {
+    res.setHeader('Content-Type', 'application/octet-stream');
+  }
+  
+  res.setHeader('Cache-Control', 'public, max-age=31536000');
+  console.log('✅ Serving asset:', filename, 'with type:', res.getHeader('Content-Type'));
+  
+  res.sendFile(assetPath);
 });
 
-// Serve frontend build BEFORE API routes to handle static assets
+// Handle vite.svg and other root-level assets
+app.get('/vite.svg', (req, res) => {
+  const assetPath = path.join(clientDistPath, 'vite.svg');
+  if (existsSync(assetPath)) {
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.sendFile(assetPath);
+  } else {
+    res.status(404).json({ error: 'Asset not found' });
+  }
+});
+
+// BACKUP: Standard static file serving (should not be needed now)
 if (existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath, {
+    index: false, // Don't serve index.html automatically
     setHeaders: (res, path) => {
-      console.log('🔧 Setting headers for:', path);
-      if (path.endsWith('.js')) {
-        res.setHeader('Content-Type', 'application/javascript');
-        res.setHeader('Cache-Control', 'public, max-age=31536000');
-      } else if (path.endsWith('.css')) {
-        res.setHeader('Content-Type', 'text/css');
-        res.setHeader('Cache-Control', 'public, max-age=31536000');
-      } else if (path.endsWith('.html')) {
-        res.setHeader('Content-Type', 'text/html');
-        res.setHeader('Cache-Control', 'no-cache');
-      }
+      console.log('🔧 Backup static serving for:', path);
     }
   }));
-  console.log('✅ Serving static files from:', clientDistPath);
-} else {
-  console.log('⚠️ No static files to serve - client dist not found');
+  console.log('✅ Backup static serving from:', clientDistPath);
 }
 
 // API Routes (after static files)
